@@ -1,16 +1,19 @@
 import React, { createContext, useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "@/utils/axiosConfig";
 
 interface UserContextProps {
 	login: (email: string, password: string) => Promise<void>;
-	forgotPassword: (email: string) => Promise<void>;
+	sendOTP: (email: string) => Promise<void>;
 	resetPassword: (
 		email: string,
 		otp: string,
 		newPassword: string
 	) => Promise<void>;
+	verifyOTP: (email: string, otp: string) => Promise<void>;
 	error: string;
 	success: string;
+	loading: boolean;
 	clearMessages: () => void;
 }
 
@@ -21,38 +24,46 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
 	const [error, setError] = useState("");
 	const [success, setSuccess] = useState("");
+	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
 
 	const login = async (email: string, password: string) => {
-		// Implement login logic here
-		// Example: const result = await loginUser(email, password);
-
-		// Mock result for demonstration
-		const result = { success: true };
-
-		if (result.success) {
-			setSuccess("Login successful.");
-			setError("");
-			navigate("/dashboard");
-		} else {
+		setLoading(true);
+		try {
+			const response = await axios.post("auth/signin", {
+				email,
+				password,
+			});
+			if (response.data) {
+				setSuccess("Login successful.");
+				setError("");
+				navigate("/dashboard");
+			}
+		} catch (err) {
 			setError("Failed to login. Please try again.");
+			console.log(error);
 			setSuccess("");
+		} finally {
+			setLoading(false);
 		}
 	};
 
-	const forgotPassword = async (email: string) => {
-		// Implement forgot password logic here
-		// Example: const result = await requestPasswordReset(email);
-
-		// Mock result for demonstration
-		const result = { success: true };
-
-		if (result.success) {
-			setSuccess("Password reset link has been sent to your email.");
-			setError("");
-		} else {
+	const sendOTP = async (email: string) => {
+		setLoading(true);
+		try {
+			const response = await axios.post("auth/send-otp", {
+				email,
+			});
+			if (response.data) {
+				setSuccess("Password reset link has been sent to your email.");
+				setError("");
+				navigate(`/auth/verify/${email}`);
+			}
+		} catch (err) {
 			setError("Failed to send password reset link. Please try again.");
 			setSuccess("");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -61,21 +72,45 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 		otp: string,
 		newPassword: string
 	) => {
-		// Implement reset password logic here
-		// Example: const result = await resetUserPassword(email, otp, newPassword);
-
-		// Mock result for demonstration
-		const result = { success: true };
-
-		if (result.success) {
-			setSuccess(
-				"Password reset successful. You can now login with your new password."
-			);
-			setError("");
-			navigate("/login");
-		} else {
+		setLoading(true);
+		try {
+			const response = await axios.post("auth/reset-password", {
+				email,
+				otp,
+				newPassword,
+			});
+			if (response.data) {
+				setSuccess(
+					"Password reset successful. You can now login with your new password."
+				);
+				setError("");
+				navigate("/auth/login");
+			}
+		} catch (err) {
 			setError("Failed to reset password. Please try again.");
 			setSuccess("");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const verifyOTP = async (email: string, otp: string) => {
+		setLoading(true);
+		try {
+			const response = await axios.post("auth/verify-otp", {
+				email,
+				otp,
+			});
+			if (response.data) {
+				setSuccess("OTP verified successfully.");
+				setError("");
+				navigate("/auth/reset-password");
+			}
+		} catch (err) {
+			setError("Failed to verify OTP. Please try again.");
+			setSuccess("");
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -88,10 +123,12 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 		<UserContext.Provider
 			value={{
 				login,
-				forgotPassword,
+				sendOTP,
 				resetPassword,
+				verifyOTP,
 				error,
 				success,
+				loading,
 				clearMessages,
 			}}>
 			{children}
