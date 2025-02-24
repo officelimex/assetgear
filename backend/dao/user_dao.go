@@ -1,59 +1,72 @@
 package dao
 
 import (
-    "github.com/officelimex/assetgear/config"
-    "github.com/officelimex/assetgear/models"
-    "github.com/officelimex/assetgear/utils"
-    "gorm.io/gorm"
+	"errors"
+
+	"github.com/officelimex/assetgear/config"
+	"github.com/officelimex/assetgear/models"
+	"github.com/officelimex/assetgear/utils"
+	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 type UserDAO struct {
-    db *gorm.DB
+	db *gorm.DB
 }
 
 func NewUserDAO() *UserDAO {
-    return &UserDAO{
-        db: config.DB,
-    }
+	return &UserDAO{
+		db: config.DB,
+	}
 }
 
 func (dao *UserDAO) GetUserByEmail(email string) (*models.User, error) {
-    var user models.User
-    if err := dao.db.
-        Preload("Department").
-        Where("email = ?", email).First(&user).Error; err != nil {
-        return nil, err
-    }
-    return &user, nil
+	var user models.User
+	if err := dao.db.
+		Preload("Department").
+		Where("email = ?", email).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
-func (dao *UserDAO) UpdateUser(user *models.User) error {
-    if err := dao.db.Save(user).Error; err != nil {
-        return err
-    }
-    return nil
+func (dao *UserDAO) VerifyOTP(email, otp string) (*models.User, error) {
+	var user models.User
+	if err := dao.db.Where("email = ? AND otp = ?", email, otp).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
-func (dao *UserDAO) VerifyOTP(email, otp string) (bool, error) {
-    var user models.User
-    if err := dao.db.Where("email = ? AND otp = ?", email, otp).First(&user).Error; err != nil {
-        return false, err
-    }
-    return user.OTP == otp, nil
+func (dao *UserDAO) UpdatePassword(u models.User, newPassword string) error {
+	hashedPwd, err := bcrypt.GenerateFromPassword([]byte(newPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return errors.New("failed to hash password")
+	}
+
+	if err := dao.db.Model(&models.User{}).
+		Where("id = ?", u.ID).
+		Updates(map[string]interface{}{
+			"password": string(hashedPwd),
+			"otp":      "",
+		}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (dao *UserDAO) SaveOTP(email string) (string, error) {
-    var user models.User
-    if err := dao.db.Where("email = ?", email).First(&user).Error; err != nil {
-        return "", err
-    }
+	var user models.User
+	if err := dao.db.Select("id").Where("email = ?", email).First(&user).Error; err != nil {
+		return "", err
+	}
 
-    otp := utils.GenerateOTP()
-    user.OTP = otp
+	otp := utils.GenerateOTP()
 
-    if err := dao.db.Save(&user).Error; err != nil {
-        return "", err
-    }
+	if err := dao.db.Model(&user).Update("otp", otp).Error; err != nil {
+		return "", err
+	}
 
-    return otp, nil
+	return otp, nil
 }

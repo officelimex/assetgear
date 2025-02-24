@@ -53,7 +53,7 @@ func initSMTP() {
 		Password: os.Getenv("SMTP_PASSWORD"),
 		Server:   os.Getenv("SMTP_SERVER"),
 		Port:     port,
-		Mode:     gosend.Live,
+		Mode:     gosend.Debug,
 		From:     os.Getenv("SMTP_FROM"),
 	}
 

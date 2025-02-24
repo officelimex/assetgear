@@ -11,7 +11,6 @@ import (
 	"github.com/officelimex/assetgear/config"
 	"github.com/officelimex/assetgear/dao"
 	"github.com/officelimex/assetgear/models"
-	"golang.org/x/crypto/bcrypt"
 )
 
 var jwtSecret = []byte("your_secret_key")
@@ -62,26 +61,25 @@ func VerifyOTP(ctx *gin.Context) {
 	}
 
 	udoa := dao.NewUserDAO()
-	isValid, err := udoa.VerifyOTP(otpData.Email, otpData.OTP)
+	user, err := udoa.VerifyOTP(otpData.Email, otpData.OTP)
 	if err != nil {
 		res.Error404("User not found")
 		return
 	}
 
-	if !isValid {
-		res.Error404("Invalid OTP")
+	if user.OTP == "" {
+		res.ServerError("Invalid OTP")
 		return
 	}
 
 	res.Ok(nil, "OTP verified successfully")
 }
 
-// ResetPassword handles password reset
 func ResetPassword(ctx *gin.Context) {
 	var resetData struct {
-		OTP         string `json:"otp"`
-		Email       string `json:"email"`
-		NewPassword string `json:"new_password"`
+		OTP         string `json:"otp" binding:"required"`
+		Email       string `json:"email" binding:"required"`
+		NewPassword string `json:"new_password" binding:"required"`
 	}
 	res := goresp.New(ctx)
 	if !res.ShouldBind(&resetData) {
@@ -89,33 +87,20 @@ func ResetPassword(ctx *gin.Context) {
 	}
 
 	udoa := dao.NewUserDAO()
-	isValid, err := udoa.VerifyOTP(resetData.Email, resetData.OTP)
+	user, err := udoa.VerifyOTP(resetData.Email, resetData.OTP)
 	if err != nil {
 		res.Error404("User not found")
 		return
 	}
 
-	if !isValid {
-		res.Error404("Invalid OTP")
+	if user.OTP == "" {
+		res.Error404("User not found")
 		return
 	}
 
-	user, err := udoa.GetUserByEmail(resetData.Email)
+	err = udoa.UpdatePassword(*user, resetData.NewPassword)
 	if err != nil {
-		res.AccessDenied("not found")
-		return
-	}
-
-	// Hash new password
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(resetData.NewPassword), bcrypt.DefaultCost)
-	if err != nil {
-		res.ServerError("Failed to hash password")
-		return
-	}
-
-	user.Password = string(hashedPassword)
-	if err := udoa.UpdateUser(user); err != nil {
-		res.ServerError("Failed to update password")
+		res.ServerError(err.Error())
 		return
 	}
 
@@ -137,7 +122,7 @@ func SendOTP(c *gin.Context) {
 
 	otp, err := dao.NewUserDAO().SaveOTP(request.Email)
 	if err != nil {
-		res.Error404("User not found")
+		res.Error404(err.Error())
 		return
 	}
 	template, err := gosend.ParseTemplate("templates/auth/forget-pwd-otp.html")
