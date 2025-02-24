@@ -1,3 +1,5 @@
 backend/tmp/build-errors.log
 backend/tmp/main
 backend/.env
+frontend/.env.development
+frontend/.env.production
