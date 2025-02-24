@@ -1,16 +1,17 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/context/UserContext";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LoadingButton from "@/components/LoadingButton";
 
 export default function ResetPassword() {
 	const [email, setEmail] = useState("");
 	const [otp, setOtp] = useState("");
 	const [newPassword, setNewPassword] = useState("");
-	const { resetPassword, error, success, clearMessages } = useUser();
+	const { resetPassword, error, success, loading, clearMessages } = useUser();
 
 	useEffect(() => {
 		clearMessages();
-	}, [clearMessages]);
+	}, []);
 
 	const handleResetPassword = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -20,7 +21,7 @@ export default function ResetPassword() {
 	return (
 		<div className="container d-flex justify-content-center align-items-center vh-100">
 			<div className="card p-4" style={{ width: "400px" }}>
-				<h2 className="card-title text-center mb-4">Reset Password</h2>
+				<h4 className="card-title text-center mb-4">Reset Password</h4>
 				<form onSubmit={handleResetPassword}>
 					<div className="mb-3">
 						<label htmlFor="email" className="form-label">
@@ -66,9 +67,7 @@ export default function ResetPassword() {
 					</div>
 					{error && <div className="alert alert-danger">{error}</div>}
 					{success && <div className="alert alert-success">{success}</div>}
-					<button type="submit" className="btn btn-primary w-100">
-						Reset Password
-					</button>
+					<LoadingButton loading={loading}>Reset Password</LoadingButton>
 				</form>
 			</div>
 		</div>
