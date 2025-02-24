@@ -1,10 +1,14 @@
 package controllers
 
 import (
-	"net/http"
+	"fmt"
+	"log"
+	"os"
 
 	"github.com/aro-wolo/goresp"
+	"github.com/aro-wolo/gosend"
 	"github.com/gin-gonic/gin"
+	"github.com/officelimex/assetgear/config"
 	"github.com/officelimex/assetgear/dao"
 	"github.com/officelimex/assetgear/models"
 	"golang.org/x/crypto/bcrypt"
@@ -19,28 +23,29 @@ func SignIn(ctx *gin.Context) {
 		Password string `json:"password"`
 	}
 
-	if err := ctx.ShouldBindJSON(&loginData); err != nil {
-		goresp.BadRequestResponse(ctx, err.Error())
+	res := goresp.New(ctx)
+
+	if !res.ShouldBind(&loginData) {
 		return
 	}
 
 	udoa := dao.NewUserDAO()
 	user, err := udoa.GetUserByEmail(loginData.Email)
 	if err != nil {
-		goresp.Error404Response(ctx, "User not found")
+		res.Error404("User not found")
 		return
 	}
 
 	// Verify password
 	if !models.CheckPasswordHash(loginData.Password, user.Password) {
-		goresp.Error404Response(ctx, "Invalid credentials")
+		res.Error404("Invalid credentials")
 		return
 	}
 
 	token, _ := models.GenerateJWT(*user)
 	ctx.SetCookie("token", token, 3600, "/", "", false, true)
 
-	goresp.OkResponse(ctx, token, "")
+	res.Ok(token, "")
 }
 
 // VerifyOTP handles OTP verification
@@ -50,23 +55,25 @@ func VerifyOTP(ctx *gin.Context) {
 		OTP   string `json:"otp"`
 	}
 
-	if !goresp.ShouldBindJSON(ctx, &otpData) {
+	res := goresp.New(ctx)
+
+	if !res.ShouldBind(&otpData) {
 		return
 	}
 
 	udoa := dao.NewUserDAO()
 	isValid, err := udoa.VerifyOTP(otpData.Email, otpData.OTP)
 	if err != nil {
-		goresp.Error404Response(ctx, "User not found")
+		res.Error404("User not found")
 		return
 	}
 
 	if !isValid {
-		goresp.Error404Response(ctx, "Invalid OTP")
+		res.Error404("Invalid OTP")
 		return
 	}
 
-	goresp.OkResponse(ctx, nil, "OTP verified successfully")
+	res.Ok(nil, "OTP verified successfully")
 }
 
 // ResetPassword handles password reset
@@ -76,41 +83,94 @@ func ResetPassword(ctx *gin.Context) {
 		Email       string `json:"email"`
 		NewPassword string `json:"new_password"`
 	}
-
-	if !goresp.ShouldBindJSON(ctx, &resetData) {
+	res := goresp.New(ctx)
+	if !res.ShouldBind(&resetData) {
 		return
 	}
 
 	udoa := dao.NewUserDAO()
 	isValid, err := udoa.VerifyOTP(resetData.Email, resetData.OTP)
 	if err != nil {
-		goresp.Error404Response(ctx, "User not found")
+		res.Error404("User not found")
 		return
 	}
 
 	if !isValid {
-		goresp.Error404Response(ctx, "Invalid OTP")
+		res.Error404("Invalid OTP")
 		return
 	}
 
 	user, err := udoa.GetUserByEmail(resetData.Email)
 	if err != nil {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		res.AccessDenied("not found")
 		return
 	}
 
 	// Hash new password
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(resetData.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		res.ServerError("Failed to hash password")
 		return
 	}
 
 	user.Password = string(hashedPassword)
 	if err := udoa.UpdateUser(user); err != nil {
-		goresp.ServerErrorResponse(ctx, "Failed to update password")
+		res.ServerError("Failed to update password")
 		return
 	}
 
-	goresp.OkResponse(ctx, nil, "Password reset successful")
+	res.Ok(nil, "Password reset successful")
+}
+
+// SendOTP handles sending OTP to user's email
+func SendOTP(c *gin.Context) {
+	var request struct {
+		Email string `json:"email" binding:"required,email"`
+	}
+
+	res := goresp.New(c)
+	// Validate the request payload.
+	if err := c.ShouldBind(&request); err != nil {
+		res.BadRequest(err.Error())
+		return
+	}
+
+	otp, err := dao.NewUserDAO().SaveOTP(request.Email)
+	if err != nil {
+		res.Error404("User not found")
+		return
+	}
+	template, err := gosend.ParseTemplate("templates/auth/forget-pwd-otp.html")
+	if err != nil {
+		res.ServerError(err.Error())
+	}
+	tokenMailTemplate := struct {
+		Email     string
+		Subject   string
+		Token     string
+		ResetLink string
+	}{
+		Email:     request.Email,
+		Subject:   "Reset Password with OTP",
+		Token:     otp,
+		ResetLink: os.Getenv("FRONTEND_URL") + "/auth/verify/" + request.Email + "/" + otp,
+	}
+	fmt.Println("otp :", otp)
+	mailBody, err := template.RenderTemplate(tokenMailTemplate)
+	if err != nil {
+		log.Fatalf("Failed to render template: %v", err)
+	}
+
+	err = gosend.Now(
+		*config.SMTPConfig, gosend.Recipients{
+			To: []string{request.Email},
+		},
+		tokenMailTemplate.Subject,
+		mailBody,
+	)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	res.Ok(nil, "OTP sent successfully")
 }

@@ -1,9 +1,11 @@
 package models
 
-import "gorm.io/gorm"
+import (
+	"time"
+)
 
 type User struct {
-	gorm.Model
+	ID           uint       `gorm:"primarykey"`
 	Name         string     `json:"name" gorm:"not null"`
 	Email        string     `json:"email" gorm:"unique;not null"`
 	Password     string     `json:"password"`
@@ -12,10 +14,16 @@ type User struct {
 	DepartmentID uint       `json:"-"`
 	Department   Department `json:"dept" gorm:"constraint:OnUpdate:CASCADE,OnDelete:SET NULL;"`
 	OTP          string     `json:"otp" gorm:"size:10"`
+	TimeStamp
 }
 
 type Department struct {
-	gorm.Model
+	ID   uint   `gorm:"primarykey"`
 	Name string `json:"name" gorm:"not null"`
-	// Users []User `json:"users" gorm:"foreignKey:DepartmentID"`
+	TimeStamp
+}
+
+type TimeStamp struct {
+	CreatedAt time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP"`
+	UpdatedAt time.Time `gorm:"type:timestamp;default:CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP"`
 }

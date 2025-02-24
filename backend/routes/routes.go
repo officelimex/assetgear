@@ -13,6 +13,7 @@ func AuthRouter(router *gin.RouterGroup) {
 		auth.POST("/signin", controllers.SignIn)
 		auth.POST("/verify-otp", controllers.VerifyOTP)
 		auth.POST("/reset-password", controllers.ResetPassword)
+		auth.POST("/send-otp", controllers.SendOTP) // Add this line
 	}
 
 }

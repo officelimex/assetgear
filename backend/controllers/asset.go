@@ -11,11 +11,13 @@ import (
 // Get all assets
 func GetAllAssets(c *gin.Context) {
 
+	res := goresp.New(c)
 	ad := dao.NewAssetDAO()
 	assets, err := ad.GetAllAssets()
 	if err != nil {
-		goresp.JSONResp(c, http.StatusInternalServerError, "Could not fetch assets", nil, true)
+		res.JSON(http.StatusInternalServerError, "Could not fetch assets", nil, true)
 		return
 	}
-	c.JSON(http.StatusOK, assets)
+
+	res.Ok(assets, "")
 }
