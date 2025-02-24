@@ -1,6 +1,11 @@
 .bg-image {
   background-image: url('/app-bg.jpg');
   background-size: cover;
-  background-repeat: no-repeat;
   background-position: center;
+}
+
+.footer {
+  padding: 10px;
+  text-align: center;
+  width: 100%;
 }
