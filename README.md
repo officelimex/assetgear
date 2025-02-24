@@ -39,7 +39,7 @@ AssetGear is a web application for managing assets. It includes features for use
 
 4. Set up environment variables:
 
-    Create a `.env` file in the [backend](http://_vscodecontentref_/1) directory with the following content:
+    Create a `.env` file in the [backend](http://_vscodecontentref_/0) directory with the following content:
 
     ```env
     DB_HOST=your_mysql_host
@@ -48,6 +48,11 @@ AssetGear is a web application for managing assets. It includes features for use
     DB_NAME=your_mysql_database
     DB_PORT=your_mysql_port
     JWT_SECRET=your_secret_key
+    SMTP_USERNAME=your_email@gmail.com
+    SMTP_PASSWORD=your_app_specific_password
+    SMTP_SERVER=smtp.gmail.com
+    SMTP_PORT=587
+    SMTP_FROM=your_email@gmail.com
     ```
 
 ## Usage
@@ -73,6 +78,7 @@ AssetGear is a web application for managing assets. It includes features for use
 ### Authentication
 
 - `POST /v1/api/auth/signin`: Sign in a user
+- `POST /v1/api/auth/send-otp`: Send OTP to user's email
 - `POST /v1/api/auth/verify-otp`: Verify OTP
 - `POST /v1/api/auth/reset-password`: Reset password
 
