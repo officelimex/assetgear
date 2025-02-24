@@ -3,3 +3,4 @@ backend/tmp/main
 backend/.env
 frontend/.env.development
 frontend/.env.production
+backend/tmp

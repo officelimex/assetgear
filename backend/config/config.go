@@ -4,14 +4,24 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
+	"github.com/aro-wolo/gosend"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+var (
+	DB         *gorm.DB
+	SMTPConfig *gosend.SMTPConfig
+)
 
+func Init() {
+	loadEnv()
+	connectDB()
+	initSMTP()
+}
 func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
@@ -19,8 +29,7 @@ func loadEnv() {
 	}
 }
 
-func ConnectDB() *gorm.DB {
-	loadEnv()
+func connectDB() *gorm.DB {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		os.Getenv("DB_USER"), os.Getenv("DB_PASS"), os.Getenv("DB_HOST"), os.Getenv("DB_PORT"), os.Getenv("DB_NAME"),
 	)
@@ -30,4 +39,25 @@ func ConnectDB() *gorm.DB {
 	}
 	DB = db
 	return db
+}
+
+func initSMTP() {
+	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	if err != nil {
+		log.Printf("Invalid SMTP port, using default 587: %v", err)
+		port = 587
+	}
+
+	SMTPConfig = &gosend.SMTPConfig{
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		Server:   os.Getenv("SMTP_SERVER"),
+		Port:     port,
+		Mode:     gosend.Live,
+		From:     os.Getenv("SMTP_FROM"),
+	}
+
+	if SMTPConfig.Username == "" || SMTPConfig.Password == "" || SMTPConfig.From == "" {
+		log.Fatal("Missing required SMTP configuration")
+	}
 }
