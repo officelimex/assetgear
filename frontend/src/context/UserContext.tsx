@@ -30,10 +30,14 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 	const login = async (email: string, password: string) => {
 		setLoading(true);
 		try {
-			const response = await axios.post("auth/signin", {
-				email,
-				password,
-			});
+			const response = await axios.post(
+				"auth/signin",
+				{
+					email,
+					password,
+				},
+				{ withCredentials: true }
+			);
 			if (response.data) {
 				setSuccess("Login successful.");
 				setError("");
@@ -77,7 +81,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 			const response = await axios.post("auth/reset-password", {
 				email,
 				otp,
-				newPassword,
+				new_password: newPassword,
 			});
 			if (response.data) {
 				setSuccess(
@@ -104,7 +108,7 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({
 			if (response.data) {
 				setSuccess("OTP verified successfully.");
 				setError("");
-				navigate("/auth/reset-password");
+				navigate(`/auth/reset-password/${email}/${otp}`);
 			}
 		} catch (err) {
 			setError("Failed to verify OTP. Please try again.");
