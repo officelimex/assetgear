@@ -1,28 +1,7 @@
-import { useEffect, useState } from "react";
-import { fetchAssets } from "@/utils/api";
+import React from "react";
 
-export default function Dashboard() {
-	const [assets, setAssets] = useState([]);
-	const [error, setError] = useState("");
+const Dashboard: React.FC = () => {
+  return <>Dashboard</>;
+};
 
-	useEffect(() => {
-		async function loadAssets() {
-			const response = await fetchAssets();
-			if (response.error) setError(response.error);
-			else setAssets(response.data);
-		}
-		loadAssets();
-	}, []);
-
-	return (
-		<div>
-			<h1>Dashboard</h1>
-			{error && <p>{error}</p>}
-			<ul>
-				{assets.map((asset, index) => (
-					<li key={index}>{asset.name}</li>
-				))}
-			</ul>
-		</div>
-	);
-}
+export default Dashboard;
