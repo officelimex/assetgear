@@ -15,6 +15,11 @@ import (
 
 var jwtSecret = []byte("your_secret_key")
 
+func SignOut(ctx *gin.Context) {
+	ctx.SetCookie("jwt.token", "", -1, "/", "", false, true)
+	goresp.New(ctx).Ok(nil, "")
+}
+
 // SignIn handles user login
 func SignIn(ctx *gin.Context) {
 	var loginData struct {
@@ -42,7 +47,7 @@ func SignIn(ctx *gin.Context) {
 	}
 
 	token, _ := models.GenerateJWT(*user)
-	ctx.SetCookie("token", token, 3600, "/", "", false, true)
+	ctx.SetCookie("jwt.token", token, 3600, "/", "", false, true)
 
 	res.Ok(token, "")
 }

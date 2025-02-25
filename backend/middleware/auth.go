@@ -1,59 +1,61 @@
 package middleware
 
 import (
-	"net/http"
-	"strings"
+	"fmt"
+	"os"
 
+	"github.com/aro-wolo/goresp"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// JWT Secret Key
-var jwtSecret = []byte("your_secret_key")
-
 // Middleware: Verify JWT Token
 func AuthMiddleware() gin.HandlerFunc {
+	var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
 	return func(c *gin.Context) {
 		// Get token from cookie
-		tokenString, err := c.Cookie("jwt")
+		res := goresp.New(c)
+		tokenString, err := c.Cookie("jwt.token")
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
-			c.Abort()
+			res.AccessDenied("Unauthorized")
 			return
 		}
 
-		// Parse and validate JWT
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+			}
 			return jwtSecret, nil
 		})
 
 		if err != nil || !token.Valid {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-			c.Abort()
+			res.AccessDenied(err.Error())
 			return
 		}
 
-		c.Next()
-	}
-}
-
-// Middleware: Check if user has a specific role
-func RoleMiddleware(role string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		// Extract JWT from cookie
-		tokenString, _ := c.Cookie("jwt")
-		token, _ := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
-		})
-
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			userRole := claims["role"].(string)
-			if strings.ToLower(userRole) != strings.ToLower(role) {
-				c.JSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
-				c.Abort()
-				return
-			}
+		// Extract claims from token
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			res.AccessDenied("Invalid token claims")
+			return
 		}
+
+		role, roleExists := claims["role"].(string)
+		name, nameExit := claims["name"].(string)
+		id, idExit := claims["id"].(float64)
+		did, _ := claims["did"].(float64)
+		email, emailEx := claims["email"].(string)
+		if !roleExists || !nameExit || !idExit || !emailEx {
+			res.AccessDenied("Issue with token")
+			return
+		}
+
+		c.Set("user_id", uint(id))
+		c.Set("user_name", name)
+		c.Set("user_email", email)
+		c.Set("user_role", role)
+		c.Set("user_dept_id", uint(did))
 
 		c.Next()
 	}

@@ -30,8 +30,7 @@ func main() {
 	endPoints := route.Group("/v1/api")
 	{
 		routes.AuthRouter(endPoints)
-		// routes.SetupRouter(endPoints)
-		// routes.SalesCustomerRoute(endPoints)
+		routes.UserRouter(endPoints)
 	}
 
 	log.Println("Server is running on :8080")
