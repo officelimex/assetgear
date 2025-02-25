@@ -1,0 +1,9 @@
+.topmenu {
+  z-index: 1000;
+  top: 0;
+}
+
+.glass-e {
+  -webkit-box-shadow: 0 0.5rem 0.5rem -0.5rem rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 0.5rem 0.5rem -0.5rem rgba(0, 0, 0, 0.2) !important;
+}

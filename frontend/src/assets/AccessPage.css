@@ -1,5 +1,5 @@
 .bg-image {
-  background-image: url('/app-bg.jpg');
+  background-image: url("/app-bg.jpg");
   background-size: cover;
   background-position: center;
 }
