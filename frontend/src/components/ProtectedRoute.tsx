@@ -1,13 +1,14 @@
-import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
-import Cookies from "js-cookie";
+import { Navigate, Outlet } from "react-router-dom";
+import { useUser } from "@/context/UserContext";
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
+const ProtectedRoute = () => {
+	const { user } = useUser();
 
-export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const token = Cookies.get("token"); // Retrieve token from cookies
+	if (!user) {
+		return <Navigate to="/" replace />;
+	}
 
-  return token ? children : <Navigate to="/" replace />;
-}
+	return <Outlet />;
+};
+
+export default ProtectedRoute;

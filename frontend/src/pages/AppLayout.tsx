@@ -1,143 +1,107 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link, Outlet } from "react-router-dom";
+import { Layout, Menu, Button, Typography, Avatar } from "antd";
+import {
+	MenuFoldOutlined,
+	MenuUnfoldOutlined,
+	LogoutOutlined,
+	HomeOutlined,
+	SettingOutlined,
+	UserOutlined,
+	FileOutlined,
+} from "@ant-design/icons";
 import { useUser } from "@/context/UserContext";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "@/assets/AppLayout.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
+
+const { Header, Sider, Content } = Layout;
+const { Title, Text } = Typography;
 
 export default function AdminLayout() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showOffcanvas, setShowOffcanvas] = useState(false);
-  const [isTablet, setIsTablet] = useState(window.innerWidth < 768);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { logout } = useUser();
+	const [collapsed, setCollapsed] = useState(false);
+	const { logout, user } = useUser();
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 35);
-    };
+	const menuItems = [
+		{
+			key: "1",
+			icon: <HomeOutlined />,
+			label: <Link to="/app/dashboard">Dashboard</Link>,
+		},
+		{
+			key: "2",
+			icon: <UserOutlined />,
+			label: <Link to="/app/assets">Assets</Link>,
+		},
+		{
+			key: "3",
+			icon: <FileOutlined />,
+			label: <Link to="/app/documents">Documents</Link>,
+		},
+		{
+			key: "4",
+			icon: <SettingOutlined />,
+			label: <Link to="/app/settings">Settings</Link>,
+		},
+	];
 
-    const handleResize = () => {
-      setIsTablet(window.innerWidth < 768);
-    };
+	const logoutItem = {
+		key: "5",
+		icon: <LogoutOutlined />,
+		label: "Logout",
+		onClick: logout,
+		className: "text-danger",
+	};
 
-    window.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleResize);
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-    };
-  }, []);
+	return (
+		<Layout className="vh-100">
+			{/* Sidebar */}
+			<Sider
+				collapsible
+				collapsed={collapsed}
+				onCollapse={setCollapsed}
+				className="d-flex flex-column ">
+				<div className="text-center mb-3 mt-3">
+					<Title level={4} className="text-white">
+						{collapsed ? "AG" : "AssetGear"}
+					</Title>
+				</div>
+				<Menu
+					theme="dark"
+					mode="inline"
+					defaultSelectedKeys={["1"]}
+					className="flex-grow-1 p-2"
+					items={menuItems}
+				/>
+				<Menu
+					theme="dark"
+					mode="inline"
+					className="mt-auto"
+					items={[logoutItem]}
+				/>
+			</Sider>
 
-  return (
-    <div className="container-fluid d-flex p-0">
-      {/* Sidebar Toggle Button */}
-      <button
-        className="btn btn-primary position-fixed top-0 start-0 m-2 d-md-none"
-        onClick={() => setShowOffcanvas(true)}
-        style={{ zIndex: 1045 }}
-      >
-        <i className="bi bi-list"></i>
-      </button>
-
-      {/* Sidebar (Collapsible) */}
-      <nav
-        className={`nav flex-column p-3 vh-100 position-fixed d-none d-md-flex ${isSidebarCollapsed ? "collapsed" : ""}`}
-        style={{
-          width: isSidebarCollapsed ? "60px" : "180px",
-          transition: "width 0.3s ease",
-        }}
-      >
-        <div className="d-flex justify-content-between align-items-center">
-          <div className="fw-bold text-center">
-            {!isSidebarCollapsed && "AssetGear"}
-          </div>
-          <button
-            className="btn btn-sm"
-            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          >
-            <i
-              className={`bi ${isSidebarCollapsed ? "bi-chevron-right" : "bi-chevron-left"}`}
-            ></i>
-          </button>
-        </div>
-        <li className="nav-item">
-          <Link className="nav-link active" to="/app/dashboard">
-            <i className="bi bi-house-door"></i>{" "}
-            {!isSidebarCollapsed && "Dashboard"}
-          </Link>
-        </li>
-        <li className="nav-item">
-          <a className="nav-link" href="#">
-            <i className="bi bi-house-door"></i>{" "}
-            {!isSidebarCollapsed && "Dashboard"}
-          </a>
-        </li>
-        <li className="nav-item mt-auto">
-          <a className="nav-link text-danger" href="#" onClick={logout}>
-            <i className="bi bi-box-arrow-right"></i>{" "}
-            {!isSidebarCollapsed && "Logout"}
-          </a>
-        </li>
-      </nav>
-
-      <div
-        className={`offcanvas offcanvas-start ${showOffcanvas ? "show" : ""}`}
-        tabIndex={-1}
-      >
-        <div className="offcanvas-header">
-          <h5 className="offcanvas-title">AssetGear</h5>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setShowOffcanvas(false)}
-          ></button>
-        </div>
-        <div className="offcanvas-body">
-          <li className="nav-item">
-            <a className="nav-link active" href="#">
-              Active
-            </a>
-          </li>
-          <li className="nav-item">
-            <a className="nav-link" href="#">
-              Link
-            </a>
-          </li>
-          <li className="nav-item mt-auto">
-            <a className="nav-link text-danger" href="#" onClick={logout}>
-              Logout
-            </a>
-          </li>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div
-        className="content flex-grow-1 px-4"
-        style={{
-          marginLeft: isTablet ? "0" : isSidebarCollapsed ? "60px" : "180px",
-          transition: "margin 0.3s ease",
-        }}
-      >
-        <div
-          className={`topmenu pb-3 pt-2 position-sticky bg-white rounded-0 d-flex justify-content-between align-items-center ${
-            isScrolled ? "glass-e" : ""
-          }`}
-        >
-          <div className="d-flex align-items-center gap-4 ms-auto">
-            <i className="bi bi-bell" style={{ fontSize: "1.6rem" }}></i>
-            <img
-              src="/profile.png"
-              alt="Profile"
-              className="rounded-circle"
-              style={{ width: "35px", height: "35px" }}
-            />
-          </div>
-        </div>
-        <div>
-          <Outlet />
-        </div>
-      </div>
-    </div>
-  );
+			{/* Main Layout */}
+			<Layout>
+				<Header className="d-flex justify-content-between align-items-center px-3 bg-white shadow-sm">
+					<Button
+						type="text"
+						icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+						onClick={() => setCollapsed(!collapsed)}
+					/>
+					<div className="d-flex align-items-center gap-3">
+						<div className="d-flex flex-column text-end">
+							<Text strong>{user?.name}</Text>
+							<Text type="secondary" className="fs-8">
+								{user?.email}
+							</Text>
+						</div>
+						<Avatar src="/profile.png" size={35} />
+					</div>
+				</Header>
+				<Content className="p-1">
+					<Outlet />
+				</Content>
+			</Layout>
+		</Layout>
+	);
 }
